@@ -13,7 +13,6 @@ const apiKeys = mysql.createConnection({
     password: "root",
     database: "packagetrackerapikeys"
 });
-
 const connection = mysql.createConnection({
     host: "localhost",
     port: 3306,
@@ -22,54 +21,123 @@ const connection = mysql.createConnection({
     database: "packagetracker"
 });
 
-apiKeys.connect(err => {
-    if (err) throw err;
-    apiKeys.query("SELECT * FROM carrierapikeys", (err, res) => {
+// ALL OF OUR FUNCTIONS
+apiConnection=()=>{
+    apiKeys.connect(err => {
         if (err) throw err;
-        // console.log("\n=============================================================================\nAPI KEYS\n");
-        // res.forEach(key => { console.log(key.friendly_name) });
-        // console.log("=============================================================================\n \n \n");
-    });
-});
-
-connection.connect((err) => {
-    if (err) throw err;
-    mainSelectionPage();
-});
-
-mainSelectionPage = () => {
-    inquirer
-        .prompt({
-            name: "selectionScreen",
-            type: listType,
-            message: "\n \n Welcome to Package Tracker, What Would You Like To Do Today?",
-            choices: [
-                "Locate Package",
-                "View Saved Packages",
-                "Leave Package Tracker"
-            ]
-        }).then((answer) => {
-            console.log(answer);
-            switch (answer.selectionScreen) {
-                case "Locate Package":
-                    // searchForPackage();
-                    break;
-                case "View Saved Packages":
-                    viewPackages();
-                    break;
-                case "Leave Package Tracker":
-                    exitApplication();
-                    break;
-            }
+        apiKeys.query("SELECT * FROM carrierapikeys", (err, res) => {
+            if (err) throw err;
+            // console.log("\n=============================================================================\nAvailable API KEYS\n");
+            // res.forEach(key => { console.log(key.friendly_name) });
+            // console.log("=============================================================================\n \n \n");
         });
+    });
 }
 
-exitApplication = () => {
+exitApplication=()=>{
     console.log('\n \n \n... EXITING APPLICATION, THANK YOU!\n \n \n');
     connection.end();
 }
 
-viewPackages = () => {
+findCarrier=(trackingNumber)=>{
+    let tNum = JSON.stringify(trackingNumber.searchTrackingNumber.length);
+    let trackingCarrier;
+
+    console.log('Length%%%%%%%%%%%%%%%%% ' + tNum)
+
+    // UPS
+    if (tNum==18 && trackingNumber.searchTrackingNumber.match(
+        /\b(1Z ?[0-9A-Z]{3} ?[0-9A-Z]{3} ?[0-9A-Z]{2} ?[0-9A-Z]{4} ?[0-9A-Z]{3} ?[0-9A-Z]|[\dT]\d\d\d ?\d\d\d\d ?\d\d\d)\b/)){
+            trackingCarrier = 'ups'
+    // FedEx
+    } else if (
+        tNum == 12 ||  tNum ==14 || tNum ==15 ||  tNum ==20 ||  tNum ==22
+        && trackingNumber.searchTrackingNumber.match(
+            /(\b96\d{20}\b)|(\b\d{15}\b)|(\b\d{12}\b)/ || 
+            /\b((98\d\d\d\d\d?\d\d\d\d|98\d\d) ?\d\d\d\d ?\d\d\d\d( ?\d\d\d)?)\b/ ||
+            /^[0-9]{15}$/)) {
+                trackingCarrier = 'fedex'
+    // USPS
+    } else if (trackingNumber.searchTrackingNumber.match(
+        /(\b\d{30}\b)|(\b91\d+\b)|(\b\d{20}\b)/ ||
+        /^E\D{1}\d{9}\D{2}$|^9\d{15,21}$/ ||
+        /^91[0-9]+$/ ||
+        /^[A-Za-z]{2}[0-9]+US$/)){
+            trackingCarrier = 'usps'
+    // DHL
+    } else if (
+        tNum == 10 
+        && trackingNumber.searchTrackingNumber.match(
+            /^\d{10,11}$/)) {
+                trackingCarrier = 'dhl'
+    // NO MATCHES
+    } else (trackingCarrier = 'none')
+
+    return trackingCarrier;
+}
+
+searchForPackage=()=>{
+    console.log('\n \n \n ===========================================');
+    console.log('| Search For A Package By Entering A Tracking Number\n');
+    inquirer.prompt({
+        name: 'searchTrackingNumber',
+        type: 'input',
+        message: 'Enter Tracking Number:', 
+    }).then(answer => {
+        let carrierName = findCarrier(answer);
+        console.log('Yay! Carrier is: ' + carrierName);
+            
+        switch(carrierName){
+            case 'dhl':
+                //dhl
+            break;
+
+            case 'fedex':
+                //fedex
+            break;
+
+            case 'ups':
+                //ups
+            break;
+
+            case 'usps':
+                //usps
+            break;
+
+            case 'none':
+                // none
+            break;
+        }
+    });
+}
+
+mainSelectionPage=()=>{
+    inquirer.prompt({
+        name: "selectionScreen",
+        type: listType,
+        message: "\n \n Welcome to Package Tracker, What Would You Like To Do Today?",
+        choices: [
+            "Locate Package",
+            "View Saved Packages",
+            "Leave Package Tracker"
+        ]
+    }).then((answer) => {
+        console.log(answer);
+        switch (answer.selectionScreen) {
+            case "Locate Package":
+                searchForPackage();
+                break;
+            case "View Saved Packages":
+                viewPackages();
+                break;
+            case "Leave Package Tracker":
+                exitApplication();
+                break;
+        }
+    });
+}
+
+viewPackages=()=>{
     connection.query("SELECT * FROM searchedpackages", (err, res) => {
         if (err) throw err;
         console.log('\n \n \nVIEWING SAVED PACKAGES \n \n');
@@ -83,29 +151,35 @@ viewPackages = () => {
 
         });
         console.log('\n \n');
-        inquirer
-            .prompt({
-                name: 'selectionAfterSavedPackages',
-                type: listType,
-                message: "\n \n What Would You Like To Do?",
-                choices: [
-                    "Delete Saved Package",
-                    "Back To Main Menu"
-                ]
-            }).then((answer) => {
-                switch (answer.selectionAfterSavedPackages) {
-                    case  "Delete Saved Package":
-                        console.log('DELETE PACKAGE OPTION!');
-                        viewPackages();
-                        break;
+        inquirer.prompt({
+            name: 'selectionAfterSavedPackages',
+            type: listType,
+            message: "\n \n What Would You Like To Do?",
+            choices: [
+                "Delete Saved Package",
+                "Back To Main Menu"
+            ]
+        }).then((answer) => {
+            switch (answer.selectionAfterSavedPackages) {
+                case  "Delete Saved Package":
+                    console.log('DELETE PACKAGE OPTION!');
+                    viewPackages();
+                    break;
 
-                    case "Back To Main Menu":
-                        console.log('Returning To Main Menu\n \n \n \n \n');
-                        mainSelectionPage();
-                        break;
-                }
-            })
-
-    });
-        
+                case "Back To Main Menu":
+                    console.log('Returning To Main Menu\n \n \n \n \n');
+                    mainSelectionPage();
+                    break;
+            }
+        });
+    });     
 }
+
+
+// START THE CONNECTIONS
+apiConnection()
+
+connection.connect((err) => {
+    if (err) throw err;
+    mainSelectionPage();
+});

@@ -21,6 +21,8 @@ const connection = mysql.createConnection({
     database: "packagetracker"
 });
 
+let fedex;
+
 // ALL OF OUR FUNCTIONS
 apiConnection=()=>{
     apiKeys.connect(err => {
@@ -28,11 +30,28 @@ apiConnection=()=>{
         apiKeys.query("SELECT * FROM carrierapikeys", (err, res) => {
             if (err) throw err;
             // console.log("\n=============================================================================\nAvailable API KEYS\n");
-            // res.forEach(key => { console.log(key.friendly_name) });
+            // res.forEach(key => {
+            //     switch(key.carrier){
+            //         case 'fedex':
+            //             fedex = new fedexAPI({
+            //                 environment: 'sandbox', // or live
+            //                 debug: true,
+            //                 key: key.apikey,
+            //                 password: key.password,
+            //                 account_number: key.account_number,
+            //                 meter_number: key.meter_number,
+            //                 imperial: true // set to false for metric
+            //             });
+            //         break;
+            //     }
+            // });
             // console.log("=============================================================================\n \n \n");
         });
     });
+    // console.log('fedex credentials::::::::: ' + fedex.key)
 }
+
+
 
 exitApplication=()=>{
     console.log('\n \n \n... EXITING APPLICATION, THANK YOU!\n \n \n');
@@ -42,8 +61,6 @@ exitApplication=()=>{
 findCarrier=(trackingNumber)=>{
     let tNum = JSON.stringify(trackingNumber.searchTrackingNumber.length);
     let trackingCarrier;
-
-    console.log('Length%%%%%%%%%%%%%%%%% ' + tNum)
 
     // UPS
     if (tNum==18 && trackingNumber.searchTrackingNumber.match(
@@ -76,18 +93,9 @@ findCarrier=(trackingNumber)=>{
     return trackingCarrier;
 }
 
-searchForPackage=()=>{
-    console.log('\n \n \n ===========================================');
-    console.log('| Search For A Package By Entering A Tracking Number\n');
-    inquirer.prompt({
-        name: 'searchTrackingNumber',
-        type: 'input',
-        message: 'Enter Tracking Number:', 
-    }).then(answer => {
-        let carrierName = findCarrier(answer);
-        console.log('Yay! Carrier is: ' + carrierName);
+getPackageData=(carrier, trackingNumber)=>{
             
-        switch(carrierName){
+        switch(carrier){
             case 'dhl':
                 //dhl
             break;
@@ -108,10 +116,41 @@ searchForPackage=()=>{
                 // none
             break;
         }
+}
+
+searchForPackage=()=>{
+    console.log('\n \n \n ===========================================');
+    console.log('| Search For A Package By Entering A Tracking Number\n');
+    inquirer.prompt({
+        name: 'searchTrackingNumber',
+        type: 'input',
+        message: 'Enter Tracking Number:', 
+    }).then(answer => {
+        let carrierName = findCarrier(answer);
+        console.log('Yay! Carrier is: ' + carrierName);
+        inquirer.prompt({
+            name: 'postSearchActions',
+            type: listType,
+            choices: [
+                "Save Package",
+                "Back"
+            ]
+        }).then(answer=> {
+            switch (answer.postSearchActions){
+                case "Save Package":
+                    savePackage()
+                break;
+
+                case "Back":
+                    mainSelectionPage()
+                break;
+            }
+        });
     });
 }
 
 mainSelectionPage=()=>{
+    console.log('\n \n \n ===========================================');
     inquirer.prompt({
         name: "selectionScreen",
         type: listType,
@@ -135,6 +174,13 @@ mainSelectionPage=()=>{
                 break;
         }
     });
+}
+
+// WORK ON THIS AFTER SETTING UP getPackageData
+savePackage=(dataObject)=>{
+    console.log('\n \n \n ===========================================');
+    console.log(dataObject); // send object with data
+
 }
 
 viewPackages=()=>{

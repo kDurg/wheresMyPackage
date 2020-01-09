@@ -25,30 +25,30 @@ let fedex;
 
 // ALL OF OUR FUNCTIONS
 apiConnection=()=>{
-    apiKeys.connect(err => {
+    apiKeys.connect(err => {1
         if (err) throw err;
         apiKeys.query("SELECT * FROM carrierapikeys", (err, res) => {
             if (err) throw err;
             // console.log("\n=============================================================================\nAvailable API KEYS\n");
-            // res.forEach(key => {
-            //     switch(key.carrier){
-            //         case 'fedex':
-            //             fedex = new fedexAPI({
-            //                 environment: 'sandbox', // or live
-            //                 debug: true,
-            //                 key: key.apikey,
-            //                 password: key.password,
-            //                 account_number: key.account_number,
-            //                 meter_number: key.meter_number,
-            //                 imperial: true // set to false for metric
-            //             });
-            //         break;
-            //     }
-            // });
+            res.forEach(key => {
+                switch(key.carrier){
+                    case 'fedex':
+                        fedex ={
+                            environment: 'sandbox', // or live
+                            debug: true,
+                            key: key.apikey,
+                            password: key.password,
+                            account_number: key.account_number,
+                            meter_number: key.meter_number,
+                            imperial: true // set to false for metric
+                        };
+                        console.log('fedex credentials::::::::: '+ fedex.key)
+                    break;
+                }
+            });
             // console.log("=============================================================================\n \n \n");
         });
     });
-    // console.log('fedex credentials::::::::: ' + fedex.key)
 }
 
 

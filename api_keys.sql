@@ -16,7 +16,7 @@ CREATE TABLE carrierapikeys (
 INSERT INTO carrierapikeys (carrier, friendly_name, apikey, password, account_number, meter_number)
     VALUES
         ('ups', 'UPS', 'DD74C97FB4075D72', 'Kenneth_45', '123456789', '987654321'),
-        ('fedex', 'FedEx', 'asdfasdfasdf', 'Kenneth_45', '123456789', '987654321')
+        ('fedex', 'FedEx', 'asdfasdfasdf', 'Kenneth_45', '510087380', '114035117')
     ;
 
 SELECT * FROM carrierapikeys;

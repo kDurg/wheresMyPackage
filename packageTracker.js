@@ -1,6 +1,11 @@
 const mysql = require("mysql");
 const inquirer = require("inquirer");
 
+const FEDEX = require('./carriers/fedex');
+const USPS = require('./carriers/usps');
+const UPS = require('./carriers/ups');
+const DHL = require('./carriers/dhl');
+
 let isWindows = /^win/.test(process.platform); // use rawlist type for windows
 let listType;
 !isWindows ? listType = 'list' : listType = 'rawlist';
@@ -36,7 +41,7 @@ apiConnection=()=>{
                         fedex ={
                             environment: 'sandbox', // or live
                             debug: true,
-                            key: key.apikey,
+                            key: key.api_key,
                             password: key.password,
                             account_number: key.account_number,
                             meter_number: key.meter_number,
@@ -101,7 +106,7 @@ getPackageData=(carrier, trackingNumber)=>{
             break;
 
             case 'fedex':
-                //fedex
+                console.log(`Shipping package ${trackingNumber} with ${carrier}`)
             break;
 
             case 'ups':
@@ -127,7 +132,9 @@ searchForPackage=()=>{
         message: 'Enter Tracking Number:', 
     }).then(answer => {
         let carrierName = findCarrier(answer);
-        console.log('Yay! Carrier is: ' + carrierName);
+        let trackingNumber = answer.searchTrackingNumber;
+        // ONCE WE HAVE THE CARRIER, LETS MAKE A CALL TO API TO TRACK THE PACKAGE
+        getPackageData(carrierName, trackingNumber)
         inquirer.prompt({
             name: 'postSearchActions',
             type: listType,
@@ -223,7 +230,7 @@ viewPackages=()=>{
 
 
 // START THE CONNECTIONS
-apiConnection()
+// apiConnection()1
 
 connection.connect((err) => {
     if (err) throw err;

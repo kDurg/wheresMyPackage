@@ -104,24 +104,23 @@ apiConnection = () => {
                         });
                         break;
 
-                    // ********************* DEPRECATION WARNING FROM MOMENTJS IN SHPIT CODE
+                    // ********************* DEPRECATION WARNING FROM MOMENTJS IN SHPIT CODE ->node_modules/moment/moment.js:289 to false
                     case 'usps':
                         usps = new UspsClient({
                             userId: key.username,
                             clientIp: key.password
                         });
-                        // usps.requestData({trackingNumber: '9361289693090475463084'}, (err, res)=> {
-                        //     // console.log('usps: ' + res)
-                        //     if (err) {
-                        //         // console.log (`USPS [ERROR] error retrieving tracking data ${JSON.stringify(err)}`)
-                        //         status = 0;
-                        //     }
-                        //     if (res) {
-                        //         // console.log (`USPS [DEBUG] new tracking data received ${JSON.stringify(res)}`)
-                        //         status = 1;
-                        //     }
-                        //     updateAPIstatus(key.carrier, status);
-                        // });
+                        usps.requestData({trackingNumber: '9361289693090475463084'}, (err, res)=> {
+                            if (err) {
+                                console.log (`USPS [ERROR] error retrieving tracking data ${JSON.stringify(err)}`)
+                                status = 0;
+                            }
+                            if (res) {
+                                // console.log (`USPS [DEBUG] new tracking data received ${JSON.stringify(res)}`)
+                                status = 1;
+                            }
+                            updateAPIstatus(key.carrier, status);
+                        });
                         break;
                 }
 
@@ -183,6 +182,7 @@ getPackageData = (carrier, trackNum) => {
         case 'ups': //1Z999AA10123456784
             console.log('UPS!!!')
             ups.requestData({ trackingNumber: trackNum }, (err, result) => {
+
                 if (err) {console.log (`UPS [ERROR] error retrieving tracking data ${err}`)}
                 if (result) {
                     // console.log (`UPS [DEBUG] new tracking data received ${JSON.stringify(result)}`)
@@ -241,16 +241,17 @@ getPackageData = (carrier, trackNum) => {
                                 mainSelectionPage();
                             break;
                         }
-                    })
-
+                    });
                 }
-                // console.log('data: ' + JSON.stringify(data))
             });
             break;
 
         case 'none':
-            // none
-            break;
+            console.log('\n \n \n \n \n \n ==========================================================================');
+            console.log('| !!!  CARRIER ASSOCIATED WITH TRACKING NUMBER NOT FOUND, TRY AGAIN !!!')
+            console.log(' ==========================================================================');
+            setTimeout(()=> mainSelectionPage(), 3000);
+        break;
     }
     return data;
 }
@@ -357,7 +358,7 @@ mainSelectionPage = () => {
                 searchForPackage();
                 break;
             case "View Saved Packages":
-                viewPackages();
+                viewPackages('view');
                 break;
             case "Leave Package Tracker":
                 exitApplication();
@@ -383,40 +384,115 @@ updateAPIstatus = (carrier, status) => {
     // });
 }
 
-viewPackages = () => {
+viewPackages = (actions) => {
     connection.query("SELECT * FROM searchedpackages", (err, res) => {
         if (err) throw err;
-        console.log('\n \n \nVIEWING SAVED PACKAGES \n \n');
+        console.log(`\n \n \nVIEWING SAVED PACKAGES`);
+        let friendlyName, packageCount=0;
         res.forEach(package => {
-            // console.log(package);
-            console.log('===========================================');
-            package.custom_note !== '' ? console.log('| ' + package.custom_note + '\n|') : console.log('| PACKAGE ' + package.id + '\n|');
-            console.log('| ' + package.carrier);
-            console.log('| ' + package.tracking_number);
-            console.log('===========================================');
+            
+            switch(package.carrier){
+                case 'dhl': 
+                    friendlyName = 'DHL';
+                break;
 
-        });
-        inquirer.prompt({
-            name: 'selectionAfterSavedPackages',
-            type: listType,
-            message: "What Would You Like To Do?",
-            choices: [
-                "Delete Saved Package",
-                "Back To Main Menu"
-            ]
-        }).then((answer) => {
-            switch (answer.selectionAfterSavedPackages) {
-                case "Delete Saved Package":
-                    console.log('DELETE PACKAGE OPTION!');
-                    viewPackages();
-                    break;
+                case 'fedex': 
+                    friendlyName = 'FedEx';
+                break;
 
-                case "Back To Main Menu":
-                    console.log('Returning To Main Menu');
-                    mainSelectionPage();
-                    break;
+                case 'ups':
+                    friendlyName = "UPS";
+                break;
+
+                case 'usps':
+                    friendlyName = "US Postal Service"
+                break;
             }
+
+            console.log('===========================================');
+            console.log('| PACKAGE ' + package.id);
+            package.custom_note !== '' ? console.log('| Custom Name: ' + package.custom_note) : null;
+            console.log('| ');
+            console.log('| Carrier: ' + friendlyName);
+            console.log('| Tracking Number: ' + package.tracking_number);
+
+            // GET UPDATES FOR THESE
+            package.last_location !== '' ? console.log('| Last Location: ' + package.last_location): null;
+            package.last_update !== '' ? console.log('| Last Update: ' + package.last_update) : null;
+            console.log('===========================================');
+            packageCount ++;
         });
+
+        switch(actions){
+            case 'view':
+                inquirer.prompt({
+                    name: 'selectionAfterSavedPackages',
+                    type: listType,
+                    message: "What Would You Like To Do?",
+                    choices: [
+                        "Delete Saved Package",
+                        "Back To Main Menu"
+                    ]
+                }).then((answer) => {
+                    switch (answer.selectionAfterSavedPackages) {
+                        case "Delete Saved Package":
+                            console.log('DELETE PACKAGE OPTION!');
+                            viewPackages('delete');
+                        break;
+        
+                        case "Back To Main Menu":
+                            console.log('Returning To Main Menu');
+                            mainSelectionPage();
+                        break;
+                    }
+                });
+            break;
+
+            case 'delete':
+                // WHICH PACKAGE TO DELETE?
+                console.log(`Total Packages Saved: ${packageCount}`)
+                inquirer.prompt({
+                    name: 'deleteWhichPackage',
+                    type: 'input',
+                    message: "Which Package Number Would You Like To Delete?"
+                }).then(answer=>{
+                    // MAKE SURE THEY PICK A VALID PACKAGE
+                    if (0 < answer.deleteWhichPackage && answer.deleteWhichPackage <= packageCount){
+                        inquirer.prompt({
+                            name: 'deleteVerify',
+                            type: listType,
+                            message: `Are You Sure You Want To Delete Package ${answer.deleteWhichPackage}?`,
+                            choices: ['Yes', 'No']
+                        }).then(answer=>{
+                            // VERIFY CORRECT
+                            switch(answer.deleteVerify){
+                                case 'Yes':
+                                    // UPDATE DB
+                                    let sqlQuery = `DELETE FROM searchedpackages WHERE id = '${answer.deleteWhichPackage}';`;
+                                    connection.query(sqlQuery, (err, res) => {
+                                        if (err) {
+                                            console.log(`[Error] There Was An Error Deleting Package ${answer.deleteWhichPackage} - ${err}`);
+                                            mainSelectionPage();
+                                        }
+                                        if (res) { 
+                                            console.log(JSON.stringify(res))
+                                            viewPackages('view');
+                                        }
+                                    });
+                                break;
+
+                                case 'No':
+                                    viewPackages('delete');
+                                break;
+                            }
+                        })
+
+                    } else { console.log('NOT VALID')}
+                })
+            break;
+        }
+
+        
     });
 }
 

@@ -14,13 +14,15 @@ CREATE TABLE searchedpackages (
     id INT AUTO_INCREMENT PRIMARY KEY,
     tracking_number VARCHAR(255) NOT NULL,
     carrier VARCHAR(255) NOT NULL,
-    custom_note VARCHAR(255)
+    custom_note VARCHAR(255),
+    last_location VARCHAR(255),
+    last_update VARCHAR(255)
 );
 
-INSERT INTO searchedpackages (tracking_number, carrier, custom_note)
+INSERT INTO searchedpackages (tracking_number, carrier, custom_note, last_location, last_update)
     VALUES 
-        ('74899989049138549412','fedex',''),
-        ('9361289693090475463084','usps','')
+        ('74899989049138549412','fedex','','',''),
+        ('9361289693090475463084','usps','','','')
     ;
     
 SELECT * FROM searchedpackages;

@@ -34,18 +34,16 @@ const connection = mysql.createConnection({
     database: "packagetracker"
 });
 
-let fedex;
-let ups;
+let fedex, ups, dhl, usps;
 
-// ALL OF OUR FUNCTIONS
+// CHECK TO SEE IF WE HAVE ACCESS TO EACH CARRIERS API
 apiConnection=()=>{
-    let status;
+    let status = 0;
 
     apiKeys.connect(err => {
         if (err) throw err;
         apiKeys.query("SELECT * FROM carrierapikeys", (err, res) => {
             if (err) throw err;
-            // console.log("\n=============================================================================\nAvailable API KEYS\n");
             res.forEach(key => {
                 switch(key.carrier){
                     case 'fedex':
@@ -57,14 +55,14 @@ apiConnection=()=>{
                         });
                         fedex.requestData({trackingNumber: '74899989049138549412'}, (err, result) =>{
                             if (err) {
-                                // console.log (`FedEx [ERROR] error retrieving tracking data ${err}`)}
+                                // console.log (`FedEx [ERROR] error retrieving tracking data ${err}`)
                                 status = 0;
                             }
                             if (result) {
                                 // console.log (`FedEx [DEBUG] new tracking data received ${JSON.stringify(result)}`)
                                 status = 1;
                             }
-                            updateAPIstatus(key.carrier, status)
+                            updateAPIstatus(key.carrier, status);
                         });
                     break;
 
@@ -83,12 +81,51 @@ apiConnection=()=>{
                                 // console.log (`UPS [DEBUG] new tracking data received ${JSON.stringify(res)}`)
                                 status = 1;
                             }
-                            updateAPIstatus(key.carrier, status)
+                            updateAPIstatus(key.carrier, status);
                         });
                     break;
+
+                    // ********************* USE 'new DhlClient' FOR NON-EUROPEAN SHIPPING *********************
+                    case 'dhl':
+                        dhl = new DhlGmClient ({ 
+                            userId: key.username,
+                            password: key.password
+                        });
+                        dhl.requestData({trackingNumber: '8564385550'}, (err, res)=> {
+                            if (err) {
+                                // console.log (`DHL [ERROR] error retrieving tracking data ${JSON.stringify(err.error)}`)
+                                status = 0;
+                            }
+                            if (res) {
+                                // console.log (`DHL [DEBUG] new tracking data received ${JSON.stringify(res)}`)
+                                status = 1;
+                            }
+                            updateAPIstatus(key.carrier, status);
+                        });
+                    break;
+
+                    // ********************* NOT WORKING? UNDEFINED ANSWER *********************
+                    case 'usps':
+                        usps = new UspsClient ({
+                            userId: key.username,
+                            clientIp: key.api_key
+                        });
+                        usps.requestData({trackingNumber: '9361289693090475463084'}, (err, res)=> {
+                            // console.log('usps: ' + res)
+                            if (err) {
+                                // console.log (`USPS [ERROR] error retrieving tracking data ${JSON.stringify(err)}`)
+                                status = 0;
+                            }
+                            if (res) {
+                                // console.log (`USPS [DEBUG] new tracking data received ${JSON.stringify(res)}`)
+                                status = 1;
+                            }
+                            updateAPIstatus(key.carrier, status);
+                        });
+                    break;
+
                 }
             });
-            // console.log("=============================================================================\n \n \n");
         });
     });
 }
@@ -133,63 +170,100 @@ findCarrier=(trackingNumber)=>{
     return trackingCarrier;
 }
 
-// getPackageData=(carrier, trackingNumber)=>{
-            
-//         switch(carrier){
-//             case 'dhl':
-//                 //dhl
-//             break;
+getPackageData=(carrier, trackNum)=>{
+    let data = [];
 
-//             case 'fedex':
-//                 console.log(`Shipping package ${trackingNumber} with ${carrier}`)
-//             break;
+    switch(carrier){
+        case 'dhl':
+            //dhl
+        break;
 
-//             case 'ups':
-//                 //ups
-//             break;
+        case 'fedex':
+            console.log(`Shipping package ${trackNum} with ${carrier}`)
+        break;
 
-//             case 'usps':
-//                 //usps
-//             break;
+        case 'ups': //1Z999AA10123456784
+        console.log('UPS!!!')
+            ups.requestData({trackingNumber: trackNum}, (err, result) =>{
+                if (err) {
+                    // console.log (`FedEx [ERROR] error retrieving tracking data ${err}`)
+                }
+                if (result) {
+                    // console.log (`UPS [DEBUG] new tracking data received ${JSON.stringify(result)}`)
+                    
+                    eta = result.eta !== 'undefined' ? result.eta : 'No Data'
+                    service = result.service !== 'undefined' ? result.service : 'No Data'
+                    weight = result.weight !== 'undefined' ? result.weight : 'No Data'
+                    status = result.status !== 'undefined' ? result.status : 'No Data'
+                    timestamp = result.activities[0].timmestamp !== 'undefined' ? result.timmestamp : 'No Data'
+                    location = result.activities[0].location !== 'undefined' ? result.location : 'No Data'
+                    details = result.activities[0].details !== 'undefined' ? result.details : 'No Data'
 
-//             case 'none':
-//                 // none
-//             break;
-//         }
-// }
+                    data.push({
+                        eta, service, weight, status, timestamp, location, details
+                    })
 
-// searchForPackage=()=>{
-//     console.log('\n \n \n ===========================================');
-//     console.log('| Search For A Package By Entering A Tracking Number\n');
-//     inquirer.prompt({
-//         name: 'searchTrackingNumber',
-//         type: 'input',
-//         message: 'Enter Tracking Number:', 
-//     }).then(answer => {
-//         let carrierName = findCarrier(answer);
-//         let trackingNumber = answer.searchTrackingNumber;
-//         // ONCE WE HAVE THE CARRIER, LETS MAKE A CALL TO API TO TRACK THE PACKAGE
-//         getPackageData(carrierName, trackingNumber)
-//         inquirer.prompt({
-//             name: 'postSearchActions',
-//             type: listType,
-//             choices: [
-//                 "Save Package",
-//                 "Back"
-//             ]
-//         }).then(answer=> {
-//             switch (answer.postSearchActions){
-//                 case "Save Package":
-//                     savePackage()
-//                 break;
+                }
+                console.log('data: ' + JSON.stringify(data))
+            });
+        break;
 
-//                 case "Back":
-//                     mainSelectionPage()
-//                 break;
-//             }
-//         });
-//     });
-// }
+        case 'usps':
+            //usps
+        break;
+
+        case 'none':
+            // none
+        break;
+    }
+    return data;
+}
+
+searchForPackage=()=>{
+    console.log('\n \n \n ===========================================');
+    console.log('| Search For A Package By Entering A Tracking Number\n');
+    inquirer.prompt({
+        name: 'searchTrackingNumber',
+        type: 'input',
+        message: 'Enter Tracking Number:', 
+    }).then(answer => {
+        let carrierName = findCarrier(answer);
+        let trackingNumber = answer.searchTrackingNumber;
+
+        // ONCE WE HAVE THE CARRIER, LETS MAKE A CALL TO API TO TRACK THE PACKAGE
+        let returnedData = getPackageData(carrierName, trackingNumber);
+        
+        // setTimeout(()=> 
+        //     console.log(`Service: ${returnedData[0].service}`),
+        //     console.log(`Status: ${returnedData[0].status}`),
+        //     console.log(`ETA: ${returnedData[0].eta}`),
+        //     console.log(`Weight: ${returnedData[0].weight}`),
+        //     console.log(`Last Update: ${returnedData[0].timestamp}`),
+        //     console.log(`Last Location: ${returnedData[0].location}`),
+        //     console.log(`Details: ${returnedData[0].details}`)
+        //     ,500);
+        // setTimeout(()=>
+        //     inquirer.prompt({
+        //         name: 'postSearchActions',
+        //         type: listType,
+        //         choices: [
+        //             "Save Package",
+        //             "Back"
+        //         ]
+        //     }).then(answer=> {
+        //         switch (answer.postSearchActions){
+        //             case "Save Package":
+        //                 savePackage()
+        //                 break;
+                        
+        //                 case "Back":
+        //                     mainSelectionPage()
+        //                     break;
+        //                 }
+        //             })
+        // ,3000)
+    });
+}
 
 mainSelectionPage=()=>{
     console.log('\n \n \n ===========================================');
@@ -225,20 +299,20 @@ savePackage=(dataObject)=>{
 
 }
 
+// UPDATE THE STATUS OF API KEYS
 updateAPIstatus=(carrier, status)=>{
     // console.log(`updated status: ${carrier} | ${status}`);
     let sqlQuery= `UPDATE carrierapikeys SET current_api_status = ${status} WHERE carrier = "${carrier}"`; // CLEAN UP WITH SQL PREPARED STATMENT TO PREVENT INJECTION
      
     apiKeys.query(sqlQuery, (err, res)=> {
         if (err) throw err;
-        // console.log(res)
     });
 
     // SANITY CHECK
     let checkDB = "SELECT * FROM carrierapikeys"
     apiKeys.query(checkDB, (err, res)=> {
         if (err) throw err;
-        console.log(res)
+        // console.log(res)
     });
 }
 

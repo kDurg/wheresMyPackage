@@ -55,14 +55,13 @@ Even though Package Tracker was able to solve my basic needs for tracking packag
 
 - Main menu
 
-    ![https://s3-us-west-2.amazonaws.com/secure.notion-static.com/8d7b9e9f-ad61-40b5-acbd-28b85eb5c60b/mainmenu.png](https://s3-us-west-2.amazonaws.com/secure.notion-static.com/8d7b9e9f-ad61-40b5-acbd-28b85eb5c60b/mainmenu.png)
+    ![main menu](screenshots/mainmenu.png)
 
 - Search functionality
 
-    ![https://s3-us-west-2.amazonaws.com/secure.notion-static.com/f1f586e9-70d1-4afb-8e56-dade2018db1d/search.png](https://s3-us-west-2.amazonaws.com/secure.notion-static.com/f1f586e9-70d1-4afb-8e56-dade2018db1d/search.png)
-
-    ![https://s3-us-west-2.amazonaws.com/secure.notion-static.com/8bc36aa2-adf7-4850-931b-65ea4a8b9098/results.png](https://s3-us-west-2.amazonaws.com/secure.notion-static.com/8bc36aa2-adf7-4850-931b-65ea4a8b9098/results.png)
+    ![search tracking number](screenshots/search.png)
+    ![search results](screenshots/results.png)
 
 - Saved Packages
 
-    ![https://s3-us-west-2.amazonaws.com/secure.notion-static.com/aae9d729-9159-4afc-b865-fae8d376dc81/savedpackages.png](https://s3-us-west-2.amazonaws.com/secure.notion-static.com/aae9d729-9159-4afc-b865-fae8d376dc81/savedpackages.png)
+    ![saved packages](screenshots/savedpackages.png)

@@ -74,7 +74,7 @@ apiConnection = () => {
                         });
                         ups.requestData({ trackingNumber: '1Z999AA10123456784' }, (err, res) => {
                             if (err) {
-                                // console.log (`UPS [ERROR] error retrieving tracking data ${err}`)
+                                console.log (`UPS [ERROR] error retrieving tracking data ${err}`)
                                 status = 0;
                             }
                             if (res) {
@@ -142,7 +142,8 @@ findCarrier = (trackingNumber) => {
     if (tNum == 18 && trackingNumber.searchTrackingNumber.match(
         /\b(1Z ?[0-9A-Z]{3} ?[0-9A-Z]{3} ?[0-9A-Z]{2} ?[0-9A-Z]{4} ?[0-9A-Z]{3} ?[0-9A-Z]|[\dT]\d\d\d ?\d\d\d\d ?\d\d\d)\b/)) {
         trackingCarrier = 'ups'
-        // FedEx
+
+    // FedEx
     } else if (
         tNum == 12 || tNum == 14 || tNum == 15 || tNum == 20 || tNum == 22
         && trackingNumber.searchTrackingNumber.match(
@@ -150,17 +151,20 @@ findCarrier = (trackingNumber) => {
             /\b((98\d\d\d\d\d?\d\d\d\d|98\d\d) ?\d\d\d\d ?\d\d\d\d( ?\d\d\d)?)\b/ ||
             /^[0-9]{15}$/)) {
         trackingCarrier = 'fedex'
-        // USPS
+
+    // USPS
     } else if (trackingNumber.searchTrackingNumber.match(
         /((\d{4})(\s?\d{4}){4}\s?\d{2})|((\d{2})(\s?\d{3}){2}\s?\d{2})|((\D{2})(\s?\d{3}){3}\s?\D{2})/)) {
         trackingCarrier = 'usps'
-        // DHL
+    
+    // DHL
     } else if (
         tNum == 10
         && trackingNumber.searchTrackingNumber.match(
             /^\d{10,11}$/)) {
         trackingCarrier = 'dhl'
-        // NO MATCHES
+        
+    // NO MATCHES
     } else (trackingCarrier = 'none')
 
     return trackingCarrier;
@@ -168,49 +172,30 @@ findCarrier = (trackingNumber) => {
 
 getPackageData = (carrier, trackNum) => {
     let data = [];
-    // console.log('GET DATA' + carrier)
+    let friendlyName, service, status, timestamp, location, details;
 
     switch (carrier) {
         case 'dhl':
-            //dhl
+            // WAITING ON DHL CREDENTIALS
             break;
 
         case 'fedex':
-            console.log(`Shipping package ${trackNum} with ${carrier}`)
+            // WAITING ON FEDEX CREDENTIALS
             break;
 
-        case 'ups': //1Z999AA10123456784
+        case 'ups': // SAMPLE TRACKING NUMBER: 1Z999AA10123456784
             console.log('UPS!!!')
             ups.requestData({ trackingNumber: trackNum }, (err, result) => {
 
                 if (err) {console.log (`UPS [ERROR] error retrieving tracking data ${err}`)}
                 if (result) {
-                    // console.log (`UPS [DEBUG] new tracking data received ${JSON.stringify(result)}`)
-                    let friendlyName = 'UPS';
-                    let service = result.service !== 'undefined' ? result.service : 'No Data'
-                    let status = result.status !== 'undefined' ? result.status : 'No Data'
-                    let timestamp = result.activities[0].timmestamp !== 'undefined' ? result.timmestamp : 'No Data'
-                    let location = result.activities[0].location !== 'undefined' ? result.location : 'No Data'
-                    let details = result.activities[0].details !== 'undefined' ? result.details : 'No Data'
-
-                    data.push({ carrier, trackNum, friendlyName, service, status, timestamp, location, details });
-                }
-                // console.log('data: ' + JSON.stringify(data))
-            });
-            break;
-
-        case 'usps':
-            //usps 9361289693090475463084
-            usps.requestData({ trackingNumber: trackNum }, (err, result) => {
-
-                err ? console.log (`USPS [ERROR] error retrieving tracking data ${err}`) : null;
-                if (result) { // ********************* NEED TO TRANSLATE STATUS
-                    let friendlyName = 'US Postal Service';
-                    let service = result.service;
-                    let status = result.status;
-                    let timestamp = result.activities[0].timestamp;
-                    let location = result.activities[0].location;
-                    let details = result.activities[0].details;
+                    console.log (`UPS [DEBUG] new tracking data received ${JSON.stringify(result)}`)
+                    friendlyName = 'UPS';
+                    service = result.service;
+                    status = result.status;
+                    timestamp = result.activities[0].timestamp;
+                    location = result.activities[0].location;
+                    details = result.activities[0].details;
 
                     data.push({ carrier, trackNum, friendlyName, service, status, timestamp, location, details });
 
@@ -244,6 +229,51 @@ getPackageData = (carrier, trackNum) => {
                 }
             });
             break;
+
+        case 'usps': // SAMPLE TRACKING NUMBER: 9361289693090475463084
+            usps.requestData({ trackingNumber: trackNum }, (err, result) => {
+
+                err ? console.log (`USPS [ERROR] error retrieving tracking data ${err}`) : null;
+                if (result) { // ********************* NEED TO TRANSLATE STATUS
+                    friendlyName = 'US Postal Service';
+                    service = result.service;
+                    status = result.status;
+                    timestamp = result.activities[0].timestamp;
+                    location = result.activities[0].location;
+                    details = result.activities[0].details;
+
+                    data.push({ carrier, trackNum, friendlyName, service, status, timestamp, location, details });
+
+                    console.log('\n \n \n******************************');
+                    console.log(`| Service: ${friendlyName} ${data[0].service}`);
+                    console.log(`| Status: ${data[0].status}`);
+                    console.log(`| Last Update: ${data[0].timestamp}`);
+                    console.log(`| Last Location: ${data[0].location}`);
+                    console.log(`| Details: ${data[0].details}`);
+                    console.log('******************************');
+
+                    inquirer.prompt({
+                        name: 'afterSearch',
+                        type: listType,
+                        message: "What Would You Like To Do?",
+                        choices: [
+                            "Save Package",
+                            "Back"
+                        ]
+                    }).then(answer => {
+                        switch (answer.afterSearch) {
+                            case "Save Package":
+                                savePackage(data);
+                            break;
+                            
+                            case "Back":
+                                mainSelectionPage();
+                            break;
+                        }
+                    });
+                }
+            });
+        break;
 
         case 'none':
             console.log('\n \n \n \n \n \n ==========================================================================');
@@ -382,10 +412,6 @@ updateAPIstatus = (carrier, status) => {
     // });
 }
 
-updatePackageDetails = () => {
-
-}
-
 viewPackages = (actions) => {
     connection.query("SELECT * FROM searchedpackages", (err, res) => {
         if (err) throw err;
@@ -425,33 +451,38 @@ viewPackages = (actions) => {
             packageCount ++;
         });
 
-        if (packageCount == 0 ) {
-            console.log()
-        }
-
+        
         switch(actions){
             case 'view':
-                inquirer.prompt({
-                    name: 'selectionAfterSavedPackages',
-                    type: listType,
-                    message: "What Would You Like To Do?",
-                    choices: [
-                        "Delete Saved Package",
-                        "Back To Main Menu"
-                    ]
-                }).then((answer) => {
-                    switch (answer.selectionAfterSavedPackages) {
-                        case "Delete Saved Package":
-                            console.log('DELETE PACKAGE');
-                            viewPackages('delete');
-                        break;
-        
-                        case "Back To Main Menu":
-                            console.log('Returning To Main Menu');
-                            mainSelectionPage();
-                        break;
-                    }
-                });
+                if (packageCount == 0 ) {
+                    console.log('\n \n \n \n \n \n =======================================');
+                    console.log('| !!!  CURRENTLY NO SAVED PACKAGES !!! ')
+                    console.log(' =======================================');
+                    setTimeout(()=> mainSelectionPage(), 2000);
+                } else {
+                    inquirer.prompt({
+                        name: 'selectionAfterSavedPackages',
+                        type: listType,
+                        message: "What Would You Like To Do?",
+                        choices: [
+                            "Delete Saved Package",
+                            "Back To Main Menu"
+                        ]
+                    }).then((answer) => {
+                        switch (answer.selectionAfterSavedPackages) {
+                            case "Delete Saved Package":
+                                console.log('DELETE PACKAGE');
+                                viewPackages('delete');
+                            break;
+            
+                            case "Back To Main Menu":
+                                console.log('Returning To Main Menu');
+                                mainSelectionPage();
+                            break;
+                        }
+                    });
+                }
+                
             break;
 
             case 'delete':

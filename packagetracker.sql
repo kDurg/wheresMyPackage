@@ -19,10 +19,10 @@ CREATE TABLE searchedpackages (
     last_update VARCHAR(255)
 );
 
-INSERT INTO searchedpackages (tracking_number, carrier, custom_note, last_location, last_update)
-    VALUES 
-        ('74899989049138549412','fedex','','',''),
-        ('9361289693090475463084','usps','','','')
-    ;
+-- INSERT INTO searchedpackages (tracking_number, carrier, custom_note, last_location, last_update)
+--     VALUES 
+--         ('74899989049138549412','fedex','','',''),
+--         ('9361289693090475463084','usps','','','')
+--     ;
     
 SELECT * FROM searchedpackages;

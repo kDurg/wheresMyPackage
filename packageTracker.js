@@ -199,7 +199,7 @@ getPackageData = (carrier, trackNum) => {
 
                     data.push({ carrier, trackNum, friendlyName, service, status, timestamp, location, details });
 
-                    console.log('\n \n \n******************************');
+                    console.log('\n \n \n \n \n \n \n \n******************************');
                     console.log(`| Service: ${friendlyName} ${data[0].service}`);
                     console.log(`| Status: ${data[0].status}`);
                     console.log(`| Last Update: ${data[0].timestamp}`);
@@ -244,7 +244,7 @@ getPackageData = (carrier, trackNum) => {
 
                     data.push({ carrier, trackNum, friendlyName, service, status, timestamp, location, details });
 
-                    console.log('\n \n \n******************************');
+                    console.log('\n \n \n \n \n \n \n \n******************************');
                     console.log(`| Service: ${friendlyName} ${data[0].service}`);
                     console.log(`| Status: ${data[0].status}`);
                     console.log(`| Last Update: ${data[0].timestamp}`);
@@ -276,7 +276,7 @@ getPackageData = (carrier, trackNum) => {
         break;
 
         case 'none':
-            console.log('\n \n \n \n \n \n ==========================================================================');
+            console.log('\n \n \n \n \n \n \n \n ==========================================================================');
             console.log('| !!!  CARRIER ASSOCIATED WITH TRACKING NUMBER NOT FOUND, TRY AGAIN !!!')
             console.log(' ==========================================================================');
             setTimeout(()=> mainSelectionPage(), 3000);
@@ -370,7 +370,7 @@ searchForPackage = () => {
 }
 
 mainSelectionPage = () => {
-    console.log('\n \n \n \n \n===========================================');
+    console.log('\n \n \n \n \n \n \n \n \n \n \n \n===============================================================');
     inquirer.prompt({
         name: "selectionScreen",
         type: listType,

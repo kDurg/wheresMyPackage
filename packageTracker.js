@@ -186,15 +186,14 @@ getPackageData = (carrier, trackNum) => {
                 if (err) {console.log (`UPS [ERROR] error retrieving tracking data ${err}`)}
                 if (result) {
                     // console.log (`UPS [DEBUG] new tracking data received ${JSON.stringify(result)}`)
-                    let eta = result.eta !== 'undefined' ? result.eta : 'No Data'
+                    let friendlyName = 'UPS';
                     let service = result.service !== 'undefined' ? result.service : 'No Data'
-                    let weight = result.weight !== 'undefined' ? result.weight : 'No Data'
                     let status = result.status !== 'undefined' ? result.status : 'No Data'
                     let timestamp = result.activities[0].timmestamp !== 'undefined' ? result.timmestamp : 'No Data'
                     let location = result.activities[0].location !== 'undefined' ? result.location : 'No Data'
                     let details = result.activities[0].details !== 'undefined' ? result.details : 'No Data'
 
-                    data.push({ eta, service, weight, status, timestamp, location, details });
+                    data.push({ carrier, trackNum, friendlyName, service, status, timestamp, location, details });
                 }
                 // console.log('data: ' + JSON.stringify(data))
             });
@@ -204,7 +203,7 @@ getPackageData = (carrier, trackNum) => {
             //usps 9361289693090475463084
             usps.requestData({ trackingNumber: trackNum }, (err, result) => {
 
-                if (err) {console.log (`USPS [ERROR] error retrieving tracking data ${err}`)}
+                err ? console.log (`USPS [ERROR] error retrieving tracking data ${err}`) : null;
                 if (result) { // ********************* NEED TO TRANSLATE STATUS
                     let friendlyName = 'US Postal Service';
                     let service = result.service;
@@ -277,7 +276,7 @@ savePackage = (packageData) => {
                     message: `Enter A Custom Name For Your ${packageData[0].friendlyName} Package`
                 }).then(answer=>{
                     customName = answer.saveCustomName;                    
-                    let sqlQuery = `INSERT INTO searchedpackages(tracking_number, carrier, custom_note) VALUES ('${packageData[0].trackNum}','${packageData[0].carrier}','${customName}')`;
+                    let sqlQuery = `INSERT INTO searchedpackages(tracking_number, carrier, custom_note, last_location, last_update) VALUES ('${packageData[0].trackNum}','${packageData[0].carrier}','${customName}','${packageData[0].location}','${packageData[0].timestamp}')`;
                     connection.query(sqlQuery, (err, res) => {
                         if (err) {
                             console.log(`[Error] There Was An Error Saving ${err}`);
@@ -299,7 +298,7 @@ savePackage = (packageData) => {
             break;
 
             case 'No':                
-                let sqlQuery = `INSERT INTO searchedpackages(tracking_number, carrier, custom_note) VALUES ('${packageData[0].trackNum}','${packageData[0].carrier}','')`;
+                let sqlQuery = `INSERT INTO searchedpackages(tracking_number, carrier, custom_note, last_location, last_update) VALUES ('${packageData[0].trackNum}','${packageData[0].carrier}','','${packageData[0].location}','${packageData[0].timestamp}')`;
                 connection.query(sqlQuery, (err, res) => {
                     if (err) {
                         console.log(`[Error] There Was An Error Saving ${err}`);
@@ -369,7 +368,6 @@ mainSelectionPage = () => {
 
 // UPDATE THE STATUS OF API KEYS
 updateAPIstatus = (carrier, status) => {
-    // console.log(`updated status: ${carrier} | ${status}`);
     let sqlQuery = `UPDATE carrierapikeys SET current_api_status = ${status} WHERE carrier = "${carrier}"`; // CLEAN UP WITH SQL PREPARED STATMENT TO PREVENT INJECTION
 
     apiKeys.query(sqlQuery, (err, res) => {
@@ -382,6 +380,10 @@ updateAPIstatus = (carrier, status) => {
     //     if (err) throw err;
         // console.log(res)
     // });
+}
+
+updatePackageDetails = () => {
+
 }
 
 viewPackages = (actions) => {
@@ -423,6 +425,10 @@ viewPackages = (actions) => {
             packageCount ++;
         });
 
+        if (packageCount == 0 ) {
+            console.log()
+        }
+
         switch(actions){
             case 'view':
                 inquirer.prompt({
@@ -436,7 +442,7 @@ viewPackages = (actions) => {
                 }).then((answer) => {
                     switch (answer.selectionAfterSavedPackages) {
                         case "Delete Saved Package":
-                            console.log('DELETE PACKAGE OPTION!');
+                            console.log('DELETE PACKAGE');
                             viewPackages('delete');
                         break;
         
@@ -450,34 +456,33 @@ viewPackages = (actions) => {
 
             case 'delete':
                 // WHICH PACKAGE TO DELETE?
+                let deletePackageNum;
                 console.log(`Total Packages Saved: ${packageCount}`)
                 inquirer.prompt({
                     name: 'deleteWhichPackage',
                     type: 'input',
                     message: "Which Package Number Would You Like To Delete?"
                 }).then(answer=>{
+                    deletePackageNum = answer.deleteWhichPackage;
                     // MAKE SURE THEY PICK A VALID PACKAGE
-                    if (0 < answer.deleteWhichPackage && answer.deleteWhichPackage <= packageCount){
+                    if (0 < deletePackageNum && deletePackageNum <= packageCount){
                         inquirer.prompt({
                             name: 'deleteVerify',
                             type: listType,
-                            message: `Are You Sure You Want To Delete Package ${answer.deleteWhichPackage}?`,
+                            message: `Are You Sure You Want To Delete Package ${deletePackageNum}?`,
                             choices: ['Yes', 'No']
                         }).then(answer=>{
                             // VERIFY CORRECT
                             switch(answer.deleteVerify){
                                 case 'Yes':
                                     // UPDATE DB
-                                    let sqlQuery = `DELETE FROM searchedpackages WHERE id = '${answer.deleteWhichPackage}';`;
+                                    let sqlQuery = `DELETE FROM searchedpackages WHERE id = '${deletePackageNum}';`;
                                     connection.query(sqlQuery, (err, res) => {
-                                        if (err) {
-                                            console.log(`[Error] There Was An Error Deleting Package ${answer.deleteWhichPackage} - ${err}`);
+                                        err ? ()=>{
+                                            console.log(`[Error] There Was An Error Deleting Package ${deletePackageNum} - ${err}`);
                                             mainSelectionPage();
-                                        }
-                                        if (res) { 
-                                            console.log(JSON.stringify(res))
-                                            viewPackages('view');
-                                        }
+                                        } : null;
+                                        res ? viewPackages('view') : null;
                                     });
                                 break;
 
@@ -487,7 +492,10 @@ viewPackages = (actions) => {
                             }
                         })
 
-                    } else { console.log('NOT VALID')}
+                    } else { 
+                        console.log('NOT VALID, Try Another Package Number');
+                        setTimeout(()=> viewPackages('delete'), 2000);
+                    }
                 })
             break;
         }

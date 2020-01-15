@@ -1,5 +1,3 @@
-# wheresMyPackage
-Package tracking application using Node
 ## Description:
 
 Package Tracker is a Node.js application that interfaces with several tracking API's (such as USPS, UPS, FedEx and DHL) as well as a SQL database. 
@@ -11,6 +9,37 @@ Over the holiday season, my wife and I ordered a lot of packages from different 
 ## Challenges:
 
 This project was pretty straight forward and there wasn't many challenges over all. The main hurdle was interfacing with the different shipping carrier's APIs since documentation left a lot to be desired. After starting to build out the requests for FedEx, I decided to opt into using another package, [shipIt](https://www.npmjs.com/package/shipit), to reduce the amount of setup involved to communicate with the shipping carrier API's. 
+
+## Setup:
+
+There is a little setup involved with this application since I didn't want to expose my API keys. To do this, I created a apikeys.sql file that is listed in the gitignore file. To recreate this file, I have included the schema below:
+
+    DROP DATABASE IF EXISTS packagetrackerapikeys;
+    CREATE DATABASE packagetrackerapikeys;
+    
+    USE packagetrackerapikeys;
+    
+    CREATE TABLE carrierapikeys (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        carrier VARCHAR(255) NOT NULL,
+        friendly_name VARCHAR(255) NOT NULL,
+        current_api_status INT,
+        api_key VARCHAR(255) NOT NULL,
+        username VARCHAR(255),
+        password VARCHAR(255),
+        account_number VARCHAR(255),
+        meter_number VARCHAR(255)
+    );
+    
+    INSERT INTO carrierapikeys (carrier, friendly_name, current_api_status, api_key, username, password, account_number, meter_number)
+        VALUES 
+        ('ups','UPS',0,'*********','*********','*********','',''),
+        ('fedex','FedEx',0,'*********','','*********','*********','*********'),
+        ('dhl','DHL',0,'','*********','*********','',''),
+        ('usps','US Postal Service',0,'*********','*********','*********','','')
+    ;
+    
+    SELECT * FROM carrierapikeys
 
 ## Future Plans:
 
